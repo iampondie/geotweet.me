@@ -1,0 +1,20 @@
+SECRET_KEY = 'dev_key_tweet_mapper'
+DEBUG = True 
+TESTING = True
+LOGGER_NAME = "geotweet.me"
+HOST = "127.0.0.1"
+PORT = 5000
+
+
+
+#Mongodb details
+#redis details
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+
+
+#twitter api keys & secretsi
+CONSUMER_KEY=""
+CONSUMER_SECRET=""
+ACCESS_TOKEN=""
+ACCESS_TOKEN_SECRET=""

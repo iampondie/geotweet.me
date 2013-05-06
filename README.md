@@ -1,4 +1,6 @@
-geotweet.me
+Geotweet.me
 ===========
 
-all geotweet.me code
+Twitter Visualisation and Spatial Mapping
+
+

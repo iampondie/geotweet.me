@@ -1,0 +1,248 @@
+html, body, #map-canvas {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    font-family: 'Open Sans', sans-serif;
+}
+#map-canvas {
+    z-index: 0;
+    position: fixed;
+}
+ 
+/*fix bootstrap bug that distorts map controls*/
+#map-canvas img {
+    max-width: none !important;
+}
+
+#map-canvas label { 
+    width: auto !important; 
+    display:inline !important; 
+}
+
+#wrapper {
+    position:relative;
+    z-index:2;
+}
+#searchbar-icon {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 40px;
+    z-index:2;
+  
+    border-left: 1px solid #EBEBE9;
+    border-top: 1px solid #EBEBE9;
+    border-bottom: 1px solid #EBEBE9;
+
+    padding: 1em;
+}
+#searchbar {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 125px;
+    height: 70px;
+    z-index:2;
+    border-left: 1px solid #EBEBE9;
+    border-top: 1px solid #EBEBE9;
+    border-bottom: 1px solid #EBEBE9;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+#searchbar-expanded {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 500px;
+    height: 500px;
+    z-index:2;
+    border: 1px solid #EBEBE9;
+    padding-left: 1em;
+    padding-right: 1em;
+    background: white;
+    opacity: 1;
+}
+
+.nav-bottom {
+    position: absolute;
+    bottom: 0;
+    min-width: 100%;
+    max-width: 100%;
+    z-index:2;
+    border-top: 1px solid #EBEBE9;
+}
+
+.search-progress-bar {
+    position: absolute;
+    left: 40%;
+    width: 20%;
+    top: 0;
+    z-index:2;
+    border-bottom: 1px solid #EBEBE9;
+    border-right: 1px solid #EBEBE9;
+    border-left: 1px solid #EBEBE9;
+    text-align: center;
+    color: white;
+    font-size: large;
+    font-weight: bold;
+    padding-top: 5px;
+}
+
+.drop-sheet {
+    background-color: white;
+    background-image: none;
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+}
+
+.drop-sheet-black {
+    background-color: black;
+    background-image: none;
+    opacity: 0.7;
+    filter: alpha(opacity=70);
+}
+
+.logo {
+    padding-left: 50px;
+    display:inline-block;
+}
+
+.smooth-corner-tl {
+-moz-border-radius-topleft: 10px;
+border-top-left-radius: 10px;
+-webkit-border-top-left-radius: 10px;
+}
+.smooth-corner-bl {
+-moz-border-radius-bottomleft: 10px;
+border-bottom-left-radius: 10px;
+-webkit-border-bottom-left-radius: 10px;
+}
+.smooth-corner-tr {
+-moz-border-radius-topright: 10px;
+border-top-right-radius: 10px;
+-webkit-border-top-right-radius: 10px;
+}
+.smooth-corner-br {
+-moz-border-radius-bottomright: 10px;
+border-bottom-right-radius: 10px;
+-webkit-border-bottom-right-radius: 10px;
+}
+
+.hard-corner-tl {
+-moz-border-radius-topleft: 5px;
+border-top-left-radius: 5px;
+-webkit-border-top-left-radius: 5px;
+}
+.hard-corner-bl {
+-moz-border-radius-bottomleft: 5px;
+border-bottom-left-radius: 5px;
+-webkit-border-bottom-left-radius: 5px;
+}
+.hard-corner-tr {
+-moz-border-radius-topright: 5px;
+border-top-right-radius: 5px;
+-webkit-border-top-right-radius: 5px;
+}
+.hard-corner-br {
+-moz-border-radius-bottomright: 5px;
+border-bottom-right-radius: 5px;
+-webkit-border-bottom-right-radius: 5px;
+
+}
+
+#searchbar {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    z-index:2;
+    border: 1px solid #EBEBE9;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+.tweet-data-box {
+    position: absolute;
+    bottom: 150px;
+    left: 0;
+    z-index:2;
+    border: 1px solid #EBEBE9;
+    padding-left: 1em;
+    padding-right: 1em;
+    color: white;
+}
+.hover {
+    -webkit-box-shadow:  0px 0px 1px 2px rgba(0, 0, 0, 1);
+    box-shadow:  0px 0px 1px 2px rgba(0, 0, 0, 1);
+    cursor: pointer;     
+}
+
+.modal-backdrop {
+    background: #000000;
+    opacity: 0.40;
+    filter: alpha(opacity=40);
+}
+
+
+.white-text {
+    color: white;
+}
+@-webkit-keyframes blink {
+    0% {
+        opacity:1;
+    }
+    50% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }
+}
+@-moz-keyframes blink {
+    0% {
+        opacity:1;
+    }
+    50% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }
+}
+.objblink {
+-webkit-transition: all 0.5s ease-in-out;
+    -moz-transition: all 0.5s ease-in-out;
+    -o-transition: all 0.5s ease-in-out;
+    -ms-transition: all 0.5s ease-in-out;
+    transition: all 0.5s ease-in-out;
+    
+    -webkit-animation-direction: normal;
+    -webkit-animation-duration: 1s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-name: blink;
+    -webkit-animation-timing-function: ease-in-out;
+    
+-moz-animation-direction: normal;
+    -moz-animation-duration: 1s;
+    -moz-animation-iteration-count: infinite;
+    -moz-animation-name: blink;
+    -moz-animation-timing-function: ease-in-out;    
+}
+
+
+@-webkit-keyframes twinkly {
+    0%   { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+@-moz-keyframes twinkly  {
+    0%   { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+@-ms-keyframes twinkly  {
+    0%   { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+.twinkle{
+    -webkit-animation: twinkly 1s alternate infinite;
+    -moz-animation: twinkly 1s alternate infinite;
+    -ms-animation: twinkly 1s alternate infinite;
+}

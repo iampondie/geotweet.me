@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>GeoTweet Me</title> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Twitter Visualisation and Spatial Mapping">
+        <meta name="author" content="Jack Dwyer">
+        <meta charset="UTF-8">
+
+        <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&amp;sensor=false"></script>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+        
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}"> 
+        <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>     
+        <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+
+        <!-- My Stuff --> 
+        <script type="text/javascript" src="{{ url_for('static', filename='js/main.js') }}"></script>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+    </head>
+    <body>
+
+	    <div id="map-canvas"></div>
+
+        <div id="searchbar-icon" class="drop-sheet-black hard-corner-tl hard-corner-bl">
+            <img src="{{ url_for('static', filename='img/search-white.png') }}" height="50" width="50" alt="Search">
+            <span class="white-text">Search</span>
+        </div>
+
+
+        <div class="nav-bottom drop-sheet-black">
+            <div class="logo">
+                <h1 style="color: white; opacity: 1; font-style: italic;" >GEOTWEET.me</h1>
+                <a href="#About" data-toggle="modal"><p style="text-align: center;">ABOUT</p></a>
+            </div>
+        </div>
+   
+
+        <div id="progress" class="search-progress-bar drop-sheet-black hard-corner-br hard-corner-bl">
+        </div>
+
+        <div id="tweet-data" class="tweet-data-box drop-sheet-black">
+            <p></p>
+            <p></p>
+        </div>
+
+        <!--Search Modal-->
+        <div id="searchModal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="Seach Box" aria-hidden="true">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h3 style="text-align: center">Search</h3>
+            </div>
+            <div class="modal-body">
+                <form id="searchform" class="form-horizontal left-align" action="javascript:twitter_search()">
+                    <div class="control-group">
+                        <label class="control-label">Terms</label>
+                        <div class="controls">
+                            <input type="text" name="terms" id="terms" placeholder="Search Terms..">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Location</label>
+                        <div class="controls">
+                            <input type="text" name="location" id="location" placeholder="Location..">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div class="controls">
+                            <button type='submit' class="btn">Search</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!--About Modal-->
+        <div id="About" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="About" aria-hidden="true">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h3 style="text-align: center">GEOTWEET ME - About</h3>
+            </div>
+            <div class="modal-body">
+                <p>Why?</p>
+                <img src="{{ url_for('static', filename='img/twitter-logo.png') }}"/>
+                <img src="{{ url_for('static', filename='img/instagram-logo.png') }}"/>
+            </div>
+        </div>
+
+    <script type="text/javascript">
+        var map;
+        var centerLat = "-37.9" //Default center is melbouren aus
+        var centerLong = "144.9"
+
+        function initMap() {        
+            console.log("initMap Called");
+            var mapOptions = {
+                zoom: 8,
+                center: new google.maps.LatLng(centerLat, centerLong),
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                keyboardShortcuts: false,
+                mapTypeControl: false,
+                rotateControl: false,
+                streetViewControl: false,
+                };
+            map = new google.maps.Map(document.getElementById('map-canvas'),
+                mapOptions);
+        };
+
+        function positionSuccess(position) {
+            centerLat = position.coords.latitude;
+            centerLong = position.coords.longitude;
+            initMap();
+        };
+        function error(msg){
+            console.log(msg);
+            initMap();
+        };
+        
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(positionSuccess, error);
+            } else {
+                error('not supported');
+                initMap();
+            };
+        };
+
+        //Run  once document is ready
+        $(function() {
+            getUserLocation();
+        });
+        </script>
+
+    </body>
+</html>

@@ -1,4 +1,4 @@
-from flask import render_template, request, session, flash, redirect, url_for
+from flask import render_template, request, session, flash, redirect, url_for, jsonify, Response
 from . import app
 from tweepy import Cursor, parsers, TweepError
 from redis import InvalidResponse
@@ -7,15 +7,20 @@ import json
 import threading
 import time
 import pprint
+from datetime import datetime
 
 PREFIX = "tweets_"
+app.searches = []
 
-#move redis call to only once in each iteration
-#Check returned value from redis
-def stream_search(uuid, search_term, location, radius):
+#TODO remove stream_search
+#TODO valid app.searchs.remove()
+def stream_search(uuid, search_term):
     app.logger.debug("UUID %s : Search Term: %s" % (uuid, search_term))
     try: 
-        for tweets in Cursor(app.twitter_api.search, q=search_term, rpp=90).pages():
+        start = datetime.now()
+        total_tweets = 0
+        total_tweets_geo = 0
+        for tweets in Cursor(app.twitter_api.search,q=search_term).pages():
             if len(tweets.get('results')) == 0 and tweets.get('page') == 1:
                 app.logger.debug("UUID %s: ZERO Results" % (uuid, ))
                 app.redis.sadd("".join((PREFIX, uuid)), "No Results found")
@@ -25,15 +30,21 @@ def stream_search(uuid, search_term, location, radius):
                 break
             else:
                 for tweet in tweets.get('results'):
-                    try:
-                        app.redis.sadd("".join((PREFIX, uuid)), tweet)
-                        app.logger.debug("adding")
-                    except InvalidResponse:
-                        app.logger.debug("Invalid redis response")
-                        break
+                    total_tweets += 1
+                    if (tweet.get('geo')):
+                        total_tweets_geo += 1
+                        try:
+                            app.redis.sadd("".join((PREFIX, uuid)), json.dumps(tweet))
+                        except InvalidResponse:
+                            app.logger.debug("Invalid redis response")
+                            break
         app.logger.debug("UUID %s: Completed" % (uuid,)) 
-
+        app.logger.debug("Time Taken %s" % (str(datetime.now() - start),))
+        app.logger.debug("Total Tweets %s --- Total GEO tweets %s" % (total_tweets, total_tweets_geo))
+        app.searches.remove(uuid)
+        app.logger.debug("removed uuid");   
     except TweepError:
+        app.searches.remove(uuid)
         app.redis.sadd("".join((uuid, PREFIX)),  "Invalid Query")
         app.logger.debug("TweepError, Invalid Query")
 
@@ -44,17 +55,37 @@ def api_search():
     try:
         terms = request.args["q"]
     except KeyError:
-        return json.dumps({"errors":[{"message":"No search terms provided","code":400}]})
+        return Response(status=400, response="No Search Term Provided")
     try:
         geocode = request.args["geocode"]
         print request.args["geocode"]
     except KeyError:
+        return Response(status=400)
         pass
 
-    return terms
+    session['id'] = str(uuid.uuid4())
+    app.redis.lpush("searches", session.get('id'))
+    app.redis.hmset(session.get('id'), 
+                    {"search_terms":request.form.get("Melbourne"),
+                    "uuid":session.get('id'),
+                    })
+    # TODO: Pass the data to redis set, load back out using session id
+    print session.get('id')
+
+    app.searches.append(session.get('id'))
+
+    threading.Thread(target=stream_search, args=(session.get('id'),terms)).start()
+
+    return Response(status=200, response=session.get('id')) 
 
 
-
+#Actual API stuff
+@app.route("/api/<uuid>")
+def search_tweets(uuid):
+    if uuid in app.searches:
+        return jsonify({'results':list(app.redis.smembers("".join((PREFIX, uuid)))), 'completed':'false'})
+    else:
+        return jsonify({'results':list(app.redis.smembers("".join((PREFIX, uuid)))), 'completed':'true'})
 
 #Ajax stuff
 #Todo move to into seperate 'api' views and correctly use GET/POST
@@ -83,7 +114,7 @@ def test_session():
 #Use wtforms 
 @app.route("/")
 def root():
-    return render_template("get_test.html")
+    return render_template("map.html")
 
 #TODO use wtforms for  validation, and move this to root.  check if its POST
 @app.route("/search", methods=["POST"])
@@ -102,7 +133,6 @@ def search():
                                                 request.form.get('radius'),)).start()
     flash("Searching Twitter")
     return redirect(url_for("root"))
-
 
 @app.route("/test")
 def test():

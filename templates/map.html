@@ -89,8 +89,8 @@
 
     <script type="text/javascript">
         var map;
-        var centerLat = "-37.9" //Default center is melbouren aus
-        var centerLong = "144.9"
+        var centerLat = "0" //Default center is melbouren aus
+        var centerLong = "0"
 
         function initMap() {        
             console.log("initMap Called");
@@ -110,11 +110,10 @@
         function positionSuccess(position) {
             centerLat = position.coords.latitude;
             centerLong = position.coords.longitude;
-            initMap();
+            map.panTo(new google.maps.LatLng(centerLat, centerLong));
         };
         function error(msg){
             console.log(msg);
-            initMap();
         };
         
         function getUserLocation() {
@@ -122,12 +121,12 @@
                 navigator.geolocation.getCurrentPosition(positionSuccess, error);
             } else {
                 error('not supported');
-                initMap();
             };
         };
 
         //Run  once document is ready
         $(function() {
+            initMap();
             getUserLocation();
         });
         </script>

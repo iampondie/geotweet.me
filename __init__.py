@@ -4,10 +4,10 @@ import tweepy, redis
 from tweepy import parsers
 import logging
 
-FORMAT = "%(asctime)-15s %(levelname)s %(name)-8s %(message)s"
-logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+#FORMAT = "%(asctime)-15s %(levelname)s %(name)-8s %(message)s"
+#logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config.from_object(settings)

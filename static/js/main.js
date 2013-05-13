@@ -74,7 +74,7 @@ function getTweets(uuid) {
     var totalTweets = 0;
     var tweetData;
     $.ajax({
-        url: "http://localhost:5000/api/"+uuid,
+        url: "/api/"+uuid,
         success: function(data) {
             if (data['completed'] == "true") {
                 keepRequesting = false;

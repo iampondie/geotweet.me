@@ -102,11 +102,18 @@ function getTweets(uuid) {
         },});
 }
 
+
+var pinColor;
+var pinImage
+var pinShadow;
+
 function createTweetMarker(obj) {
         var tweet = $.parseJSON(obj);
         var marker = new google.maps.Marker({
             position: new google.maps.LatLng(tweet.geo.coordinates[0],tweet.geo.coordinates[1]),
             map: map,
+            icon: pinImage,
+            shadow: pinShadow
         });
         google.maps.event.addListener(marker, 'click', function() {
             console.log(tweet.text);
@@ -118,9 +125,28 @@ function createTweetMarker(obj) {
 
 
 function createTweetMarkers(obj) {
+        //create different color markers
+        var pinColor = get_random_color();
+        pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + pinColor,
+            new google.maps.Size(21, 34),
+            new google.maps.Point(0,0),
+            new google.maps.Point(10, 34));
+        pinShadow = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_shadow",
+            new google.maps.Size(40, 37),
+            new google.maps.Point(0, 0),
+            new google.maps.Point(12, 35));
+
         console.log("createTweetMarkser called");
         for (var i=0; i<obj.results.length; i++) {
             createTweetMarker(obj.results[i]);
            }
     }
-
+function get_random_color() {
+//http://stackoverflow.com/questions/1484506/random-color-generator-in-javascript
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.round(Math.random() * 15)];
+    }
+    return color;
+}

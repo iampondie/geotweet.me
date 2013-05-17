@@ -69,6 +69,39 @@ function parse_tweets(uuid) {
     $("#progress").addClass("twinkle");
     getTweets(uuid);
 }
+
+function load_twapper_tweets() {
+    var url = $("#twapper-url").val();
+    console.log(url);
+    
+    $.ajax({
+        url: "/kapper",
+        success: function(data) {
+            getKapperTweets(data);
+        },
+        complete: function() {
+            console.log("complete");
+        },});
+}
+
+function getKapperTweets(data) {
+    var tweetObj = $.parseJSON(data);
+    for (var i = 0; i<tweetObj.tweets.length; i++) {
+        if (tweetObj.tweets[i].geo_type) {
+
+            console.log(tweetObj.tweets[i].geo_coordinates_0);
+        };
+        //if (tweetObj.tweets[i].get_coordinates_0 == "0 ") {
+        //    console.log("matched");
+        //} else {
+        //    console.log("no matched");
+        //    console.log(tweetObj.tweets[i].geo_coordinates_0);
+        //    console.log(tweetObj.tweets[i].geo_type);
+            //console.log(typeof(tweetObj.tweets[i].geo_coordinates_0));
+        //};
+    };
+}
+
 function getTweets(uuid) {
     var keepRequesting = true;
     var totalTweets = 0;
@@ -102,7 +135,6 @@ function getTweets(uuid) {
         },});
 }
 
-
 var pinColor;
 var pinImage
 var pinShadow;
@@ -122,6 +154,22 @@ function createTweetMarker(obj) {
             $("#tweet-data").show();
         });
     }
+function createTweetMarker_latLng(lat, lng, text, created_at) {
+        var marker = new google.maps.Marker({
+            position: new google.maps.LatLng(lat,lng),
+            map: map,
+            icon: pinImage,
+            shadow: pinShadow
+        });
+        google.maps.event.addListener(marker, 'click', function() {
+            console.log(text);
+            $("#tweet-data p:first").html("<strong>Text: </strong>" + tweet.text);
+            $("#tweet-data p:last").html("<strong>Created at: </strong>" + tweet.created_at);  
+            $("#tweet-data").show();
+        });
+    }
+
+
 
 
 function createTweetMarkers(obj) {

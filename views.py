@@ -8,6 +8,7 @@ import threading
 import time
 import pprint
 from datetime import datetime
+import requests
 
 PREFIX = "tweets_"
 app.searches = []
@@ -138,3 +139,8 @@ def search():
 def test():
     return render_template("app.html")
 
+
+@app.route("/kapper")
+def kapper():
+   req = requests.get("http://www.research.iampondie.com/apiGetTweets.php?id=8&sm=&sd=&sy=&em=&ed=&ey=&o=&l=1000&from_user=&text=&lang=")
+   return req.text

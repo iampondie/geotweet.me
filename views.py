@@ -142,5 +142,5 @@ def test():
 
 @app.route("/kapper")
 def kapper():
-   req = requests.get("http://www.research.iampondie.com/apiGetTweets.php?id=8&sm=&sd=&sy=&em=&ed=&ey=&o=&l=1000&from_user=&text=&lang=")
+   req = requests.get("http://www.research.iampondie.com/apiGetTweets.php?id=8&sm=&sd=&sy=&em=&ed=&ey=&o=&l=40000&from_user=&text=&lang=")
    return req.text

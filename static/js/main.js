@@ -88,8 +88,14 @@ function getKapperTweets(data) {
     var tweetObj = $.parseJSON(data);
     for (var i = 0; i<tweetObj.tweets.length; i++) {
         if (tweetObj.tweets[i].geo_type) {
+            createTweetMarker_latLng(tweetObj.tweets[i].geo_coordinates_0, tweetObj.tweets[i].geo_coordinates_1, tweetObj.tweets[i].text, tweetObj.tweets[i].created_at);
 
+
+            console.log(tweetObj.tweets[i].text);
+            console.log(tweetObj.tweets[i].created_at);
             console.log(tweetObj.tweets[i].geo_coordinates_0);
+            console.log(tweetObj.tweets[i].geo_coordinates_1);
+            console.log(tweetObj.tweets[i]);
         };
         //if (tweetObj.tweets[i].get_coordinates_0 == "0 ") {
         //    console.log("matched");
@@ -163,8 +169,8 @@ function createTweetMarker_latLng(lat, lng, text, created_at) {
         });
         google.maps.event.addListener(marker, 'click', function() {
             console.log(text);
-            $("#tweet-data p:first").html("<strong>Text: </strong>" + tweet.text);
-            $("#tweet-data p:last").html("<strong>Created at: </strong>" + tweet.created_at);  
+            $("#tweet-data p:first").html("<strong>Text: </strong>" + text);
+            $("#tweet-data p:last").html("<strong>Created at: </strong>" + created_at);  
             $("#tweet-data").show();
         });
     }

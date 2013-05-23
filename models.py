@@ -39,6 +39,26 @@ class Tweet(Document):
         },
     ]
 
+@connection.register
+class TwapperKeeper(Document):
+
+    structure = {
+        'text':unicode,
+        'id':unicode,
+        'geo': {
+                'type':unicode,
+                'coordinates':(OR(float, int), OR(float, int)),
+                },
+        'created_at': datetime.datetime,
+    }
+    indexes = [
+        {
+            'fields':[('created_at', INDEX_ASCENDING), ('geo.coordinates', INDEX_GEO2D)],
+        },
+    ]
+
+
+
 if __name__ == "__main__":
     d = connection.Tweet({"text":"TEXT", "id":"1213", "created_at":"12112"})
     print d

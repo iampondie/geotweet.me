@@ -3,6 +3,7 @@ var isOn = true;
 var searchHeight = "75px";
 var searchWidth = "125px"
 var geoTweets = new Array();
+var heatmapTweets = new Array();
 
 $(document).ready( function(){
     $('#searchModal').on('hidden', function () {
@@ -73,7 +74,6 @@ function parse_tweets(uuid) {
 function load_twapper_tweets() {
     var url = $("#twapper-url").val();
     console.log(url);
-    
     $.ajax({
         url: "/kapper",
         success: function(data) {
@@ -85,6 +85,7 @@ function load_twapper_tweets() {
 }
 
 function getKapperTweets(data) {
+    heatmapTweets = new Array();
     var tweetObj = $.parseJSON(data);
     for (var i = 0; i<tweetObj.tweets.length; i++) {
         if (tweetObj.tweets[i].geo_type) {
@@ -167,6 +168,7 @@ function createTweetMarker_latLng(lat, lng, text, created_at) {
             icon: pinImage,
             shadow: pinShadow
         });
+        heatmapTweets.push(new google.maps.LatLng(lat,lng));
         google.maps.event.addListener(marker, 'click', function() {
             console.log(text);
             $("#tweet-data p:first").html("<strong>Text: </strong>" + text);
@@ -175,6 +177,11 @@ function createTweetMarker_latLng(lat, lng, text, created_at) {
         });
     }
 
+function toggleHeatmap() {
+    console.log(heatmapTweets);
+    heatmap.setData(heatmapTweets);
+    heatmap.setMap(heatmap.getMap() ? null : map);
+}
 
 
 

@@ -3,6 +3,9 @@ from . import settings
 import tweepy, redis
 from tweepy import parsers
 import logging
+from flask.ext.mongokit import MongoKit
+from flask.ext.pymongo import PyMongo
+
 
 #FORMAT = "%(asctime)-15s %(levelname)s %(name)-8s %(message)s"
 #logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -11,6 +14,11 @@ import logging
 
 app = Flask(__name__)
 app.config.from_object(settings)
+
+
+db = MongoKit(app)
+mongo = PyMongo(app, config_prefix='MONGODB')
+
 
 auth = tweepy.OAuthHandler(app.config.get("CONSUMER_KEY"), app.config.get("CONSUMER_SECRET"))
 auth.set_access_token(app.config.get("ACCESS_TOKEN"), app.config.get("ACCESS_TOKEN_SECRET"))
@@ -22,3 +30,4 @@ app.redis = redis.StrictRedis(host=app.config.get("REDIS_HOST"), port=app.config
 #Set correct redis values and add prefixs to config
 
 import views
+import models

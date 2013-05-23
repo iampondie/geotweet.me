@@ -6,7 +6,10 @@
         <meta name="author" content="Jack Dwyer">
         <meta charset="UTF-8">
 
-        <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&amp;sensor=false"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&libraries=visualization"></script>
+
+
+        <!--<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&amp;sensor=false&amp;libraries=visualisation"></script>-->
         <script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
         <script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
         
@@ -100,10 +103,15 @@
             </div>
         </div>
 
+
+     <button onclick="toggleHeatmap()">Toggle Heatmap</button>
+
+
     <script type="text/javascript">
         var map;
         var centerLat = "0" //Default center is melbouren aus
         var centerLong = "0"
+        var heatmap;
 
         function initMap() {        
             console.log("initMap Called");
@@ -118,6 +126,10 @@
                 };
             map = new google.maps.Map(document.getElementById('map-canvas'),
                 mapOptions);
+
+            heatmap = new google.maps.visualization.HeatmapLayer();
+            heatmap.setMap(map);
+
         };
 
         function positionSuccess(position) {

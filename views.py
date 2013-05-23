@@ -1,5 +1,5 @@
 from flask import render_template, request, session, flash, redirect, url_for, jsonify, Response
-from . import app
+from . import app, db
 from tweepy import Cursor, parsers, TweepError
 from redis import InvalidResponse
 import uuid
@@ -9,6 +9,7 @@ import time
 import pprint
 from datetime import datetime
 import requests
+from bson import json_util
 
 PREFIX = "tweets_"
 app.searches = []
@@ -137,10 +138,18 @@ def search():
 
 @app.route("/test")
 def test():
-    return render_template("app.html")
+    return render_template("heat.html")
+
+
+@app.route("/lat")
+def search_location():
+    locations = []
+    for data in db.stream_tweets.find({"geo.coordinates": {"$maxDistance":10, "$near":[37, 144]}}):
+        locations.append(data)
+    return json.dumps(locations, default=json_util.default)
 
 
 @app.route("/kapper")
 def kapper():
-   req = requests.get("http://www.research.iampondie.com/apiGetTweets.php?id=8&sm=&sd=&sy=&em=&ed=&ey=&o=&l=40000&from_user=&text=&lang=")
+   req = requests.get("http://www.research.iampondie.com/apiGetTweets.php?id=8&sm=&sd=&sy=&em=&ed=&ey=&o=&l=50000&from_user=&text=&lang=")
    return req.text

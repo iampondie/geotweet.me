@@ -1,5 +1,5 @@
 from flask import render_template, request, session, flash, redirect, url_for, jsonify, Response
-from . import app, db
+from . import app, db, connection
 from tweepy import Cursor, parsers, TweepError
 from redis import InvalidResponse
 import uuid
@@ -148,6 +148,12 @@ def search_location():
         locations.append(data)
     return json.dumps(locations, default=json_util.default)
 
+@app.route("/boston")
+def twapper_boston():
+    tweets = []
+    for data in connection.yourtwapperkeeper.boston.find():
+        tweets.append(data)
+    return json.dumps({'results':tweets}, default=json_util.default)
 
 @app.route("/kapper")
 def kapper():

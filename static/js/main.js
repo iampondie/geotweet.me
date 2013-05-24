@@ -20,6 +20,10 @@ $(document).ready( function(){
         }, 'toggle');
     });
 
+    $("#boston_button").click(function() {
+        getBostonTweets();
+    });
+
     //console.log($("#searchbar").width());
     $("#searchbar-icon").hover(function() {
         //var val = $("#searchbar").css("width");
@@ -37,6 +41,27 @@ $(document).ready( function(){
 
 function finishedAnimation() {
     console.log("finished!!");
+}
+
+function getBostonTweets() {
+    console.log("get boston tweets called");
+    $("#searchModal").modal('hide');
+    $("#progress").html("<p>Searching...</p>");
+    $("#progress").show()
+    $("#progress").addClass("twinkle");
+    $.ajax({ 
+        type: "GET",
+        contentType: "application/json; charset=utf-8",
+        url: "/boston",
+        success: function (data) {
+            console.log("search GET request completed");
+            createTweetMarkers($.parseJSON(data));
+        },
+        statusCode: {
+            200: function(xhr) {parse_tweets(xhr);},
+            400: function() {console.log("failed")},
+        },
+    }); 
 }
 
 function twitter_search() {
@@ -197,7 +222,7 @@ function createTweetMarkers(obj) {
             new google.maps.Point(0, 0),
             new google.maps.Point(12, 35));
 
-        console.log("createTweetMarkser called");
+        console.log("createTweetMarksr called");
         for (var i=0; i<obj.results.length; i++) {
             createTweetMarker(obj.results[i]);
            }

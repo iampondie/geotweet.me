@@ -7,6 +7,9 @@ from flask.ext.mongokit import MongoKit
 from flask.ext.pymongo import PyMongo
 
 
+from mongokit import Connection
+connection = Connection()
+
 #FORMAT = "%(asctime)-15s %(levelname)s %(name)-8s %(message)s"
 #logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 

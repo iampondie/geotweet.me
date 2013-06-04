@@ -1,0 +1,76 @@
+<html ng-app="geotweetme">
+<head>
+    <title>Leaflet Quick Start Guide Example</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--[if lte IE 8]><link rel="stylesheet" href="../dist/leaflet.ie.css" /><![endif]-->
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
+    <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
+    <script src="{{ url_for('static', filename='js/angular-leaflet-directive.js') }}"></script>
+    
+    <style>
+        html, body {
+            margin: 0;
+        }
+        .angular-leaflet-map {
+            width: 100%;
+            height: 90%;
+        }
+    </style>
+    <script>
+        angular.module("geotweetme", ["leaflet-directive"]);
+    
+        function mapController($scope, $http) {
+            $scope.addMarker = function(_id, _lat, _lng) {
+                $scope.markers[_id] = {
+                    lat: _lat,
+                    lng: _lng,
+                };
+            };
+            $scope.delMarker = function(val) {
+                console.log($scope.markers);
+                delete $scope.markers[1];
+            };
+
+            $scope.bostonMarkers = function() {
+                $http({method: 'GET', url: '/boston'}).
+                    success(function(data, status, headers, config) {
+                        for (var i=0; i<data.results.length; i++) {
+                            $scope.addMarker(i, data.results[i].geo.coordinates[0],
+                                            data.results[i].geo.coordinates[1]);
+                        }
+                        //$scope.addMarker();
+                    }). 
+                    error(function(data, status, headers, config) {
+                        console.log(data);
+                });
+            };
+
+            angular.extend($scope, {
+                cen: {
+                    lat: 53,
+                    lng: -3,
+                    zoom: 1,
+                },
+                markers: {
+                    m1: {
+                        lat: 2,
+                        lng: 2,
+                    }
+                },
+            });
+        };
+
+    </script>
+</head>
+<body ng-controller="mapController">
+    <leaflet markers="markers"></leaflet>
+    <button ng-click="addMarker()">TEST</button>
+    <button ng-click="delMarker(1)">DEL</button>
+    <button ng-click="bostonMarkers()">boston</button>
+</body>
+</html>
+
+
+

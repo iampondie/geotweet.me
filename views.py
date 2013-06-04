@@ -159,3 +159,8 @@ def twapper_boston():
 def kapper():
    req = requests.get("http://www.research.iampondie.com/apiGetTweets.php?id=8&sm=&sd=&sy=&em=&ed=&ey=&o=&l=50000&from_user=&text=&lang=")
    return req.text
+
+
+@app.route("/ang")
+def angular_test():
+    return render_template("angular-js.html")

@@ -32,5 +32,5 @@ app.redis = redis.StrictRedis(host=app.config.get("REDIS_HOST"), port=app.config
 #Todo
 #Set correct redis values and add prefixs to config
 
-import views
-import models
+from . import views
+from . import models

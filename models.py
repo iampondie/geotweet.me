@@ -1,4 +1,5 @@
 import datetime
+from . import db
 from mongokit import *
 
 connection = Connection()
@@ -32,6 +33,9 @@ class Tweet(Document):
                     'location':unicode,
                     'created_at':datetime.datetime,
                     },
+        'geotweetme': {
+                    'active':bool,
+            }
         }
     indexes = [
         {
@@ -40,8 +44,20 @@ class Tweet(Document):
     ]
 
 @connection.register
-class TwapperKeeper(Document):
+class Search(Document):
+    __collection__ = 'searches'
+    __database__ = 'geo_tweet_me'
 
+    structure = {
+        'created_at': datetime.datetime,
+        'terms': list,
+        'tweets': list,
+    }
+    default_values = {'created_at': datetime.datetime.now}
+
+
+@connection.register
+class TwapperKeeper(Document):
     structure = {
         'text':unicode,
         'id':unicode,
@@ -57,7 +73,7 @@ class TwapperKeeper(Document):
         },
     ]
 
-
+db.register([Search, Tweet])
 
 if __name__ == "__main__":
     d = connection.Tweet({"text":"TEXT", "id":"1213", "created_at":"12112"})

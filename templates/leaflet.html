@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+        <title>Heatmaps</title>
+
+        <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5.1/leaflet.css" />
+        <script src="http://cdn.leafletjs.com/leaflet-0.5.1/leaflet.js"></script>
+        <link rel="stylesheet" href="/static/css/MarkerCluster.Default.css" />
+        <link rel="stylesheet" href="/static/css/MarkerCluster.css" />
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<script src="/static/js/leaflet.markercluster-src.js"></script>
+    </head>
+
+    <body>
+
+        <div id="map" style="width: 1000px; height: 1000px;"></div>
+        <button onclick='getBostonTweets()'>addmarker</button>
+        <script type="text/javascript">
+            var map = L.map('map').setView([51, 0], 13);
+            var markers = new Array();
+            var cluster = new L.MarkerClusterGroup();
+            
+
+            L.tileLayer('http://{s}.tile.cloudmade.com/6f10573ca3e046b2ad44ec80da87defa/997/256/{z}/{x}/{y}.png', {
+                attribution: 'Jack Dwyer',
+                maxZoom: 18
+                }).addTo(map);
+
+
+            function getBostonTweets() {
+                $.ajax({ 
+                    type: "GET",
+                    contentType: "application/json; charset=utf-8",
+                    url: "/boston",
+                    success: function (data) {
+                        console.log("search GET request completed");
+                        plotTweets($.parseJSON(data));
+                    },
+                    statusCode: {
+                        200: function(xhr) {console.log("200")},
+                        400: function() {console.log("failed")},
+                    },
+                   }); 
+            }
+    
+            function draw() {
+                //L.layerGroup(markers).addTo(map);
+                map.addLayer(cluster);
+                console.log("completed");
+            }
+
+            function plotTweets(obj) {
+                for (var i=0;i<obj.results.length;i++) {
+                    //markers.push(createMarker(obj.results[i].geo.coordinates[0], obj.results[i].geo.coordinates[1]));
+                    cluster.addLayer(createMarker(obj.results[i].geo.coordinates[0], obj.results[i].geo.coordinates[1]));
+                }
+                draw();
+            }
+
+
+            function createMarker(lat, lng) {
+                var options = {
+                    markersZoomAnimation: false,
+                    opacity: 1, 
+                    }
+                return L.marker(new L.LatLng(lat, lng),  options);
+            }
+        </script>
+
+    </body>
+</html>

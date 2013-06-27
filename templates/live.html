@@ -1,0 +1,77 @@
+{% extends 'tmpl.html' %}
+{% set active_page = "live" %}
+{% block content %}
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
+    <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet.js"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/controllers/statusCntl.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vendor/angular-leaflet-directive.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='js/vendor/MarkerCluster.js') }}"></script>
+    <style>
+        }
+        .angular-leaflet-map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script>
+        function mapCntl($scope, $http)  {
+            var markers = new Array();
+
+            var map = L.map('map').setView([0, 0], 2);
+            L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+            $scope.createMarkers = function(lat, lng) {
+                return L.marker([lat, lng]);
+            }   
+
+            //Take off 1.5mins on initial request to get some data
+            $http.get('/api/latest/tweets/'+ new moment().subtract('minutes', 1.5).format('X')).success(
+                function(data) {
+                    console.log(data);
+                    $scope.tweets = data.results;
+                    for (var i = 0; i < $scope.tweets.length; i++) {
+                        map.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1]));
+                        $scope.latestDate = moment($scope.tweets[i].created_at["$date"]);
+                    }
+                }).error(
+                function(data) {
+                    console.log("Failed getting latest tweets");
+                    console.log(data);
+            });
+
+            setInterval(function () {
+                $scope.$apply(function () {
+                    $http.get('/api/latest/tweets/'+$scope.latestDate.format('X')).success(
+                        function(data){
+                            $scope.tweets = data.results; 
+                            $scope.tweet_css = "";
+                        }).error(function(data) {
+                            console.log("Failed retrieving latest tweets");
+                            console.log(data);  
+                    });
+                });
+            }, 1000);
+
+            $scope.$watch('tweets', function(newdata, olddata) {
+                if (newdata && olddata) {
+                    for (var i = 0; i < $scope.tweets.length; i++) {
+                        map.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1]));
+                        $scope.latestDate = moment($scope.tweets[i].created_at["$date"]);
+                    }
+                }
+            });
+        }
+    </script>
+
+    <div class="container" ng-controller="statusCntl">
+        <h2>Total Tweets: <span ng-class="tweet_css" class="update">[< totalTweets >]</span></h2>
+    </div>
+    <div class="container" ng-controller="mapCntl">
+        <div id="map" class="map" style="width: 100%; height: 700px"></div>
+        <div>SOME data </div>
+    </div>
+
+{% endblock %}

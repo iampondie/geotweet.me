@@ -1,0 +1,36 @@
+{% extends 'tmpl.html' %}
+{% set active_page = "search" %}
+{% block content %}
+        <div class="container pagination-centered" >
+            <form class="form-search" method="GET" action="/search">
+                <h1>Enter Search Terms:</h1>
+                <input type="text" name="q" class="input-medium search-query">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+            <p>All Searches performed in lower case</p>
+        </div>
+        <br>
+        <h3>Previous Searches</h3>
+       <script type="text/javascript" src="{{ url_for('static', filename='js/controllers/prevSearchCntl.js') }}"></script>
+        <div class="container" ng-controller="prevSearchCntl">
+            <table class="table">
+                <thead>
+                    <tr>    
+                        <th ng-repeat="header in headers">
+                            <a ng-click="toggleSort(header)"><h4>[< header >]</h4>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="val in searches | orderBy:order:reverse">
+                        <td ng-class="val.tweet_css" class="update" ng-repeat="key in headers">[< val[key] >]</td>
+                        <td><a href="/api/search/[< val['_id'].$oid >]/json"><button class="btn-small btn-primary">Download JSON</button></a></td>
+                        <td><a href="/api/search/[< val['_id'].$oid >]/delete"><button class="btn-small btn-danger">Delete</button></a></td>
+
+                        </span>
+                        <td><a href="/search/[< val['_id'].$oid >]/view"><button class="btn-small btn-primary">View</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+{% endblock %}

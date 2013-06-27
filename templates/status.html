@@ -1,0 +1,28 @@
+{% extends 'tmpl.html' %}
+{% set active_page = "status" %}
+{% block content %}
+<div class="container pagination-centered" >
+    <h1>Status</h1>
+
+    <script type="text/javascript" src="{{ url_for('static', filename='js/controllers/statusCntl.js') }}"></script>
+    <div class="container" ng-controller="statusCntl">
+        <h2>Total Tweets: <span ng-class="tweet_css" class="update">[< totalTweets >]</span></h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th ng-repeat="header in headers">
+                        <h4>[< header >]</h4>
+                    </th>
+                </tr>
+            </thead> 
+            <tbody>
+                <tr ng-repeat="service in services">
+                    <td>[< service['name'] >]</td>
+                    <td><span ng-class="service['css']"> [< service['statename'] | lowercase >] </span></td>
+                    <td>[< service['description'] >]</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

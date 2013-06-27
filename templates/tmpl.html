@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block base_content %}
+<div class="row">
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+
+    {% set navigation_bar = [
+        ('/', 'search', 'Search'),
+        ('/live', 'live', 'Live'),
+        ('/status', 'status', 'Status'),
+        ('/about', 'about', 'About')
+    ] -%}
+    {% set active_page = active_page|default('search') -%}
+                <ul class="nav">
+                    <li><a href="#">GeoTweet Me</a></li>
+                    {% for href, id, caption in navigation_bar %}
+                        <li{% if id == active_page %} class="active"{% endif
+                        %}><a href="{{ href|e }}">{{ caption|e }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>     
+    <br>
+</div>
+    {% include '_alerts.html' %}
+
+    {% block content %}
+
+    {% endblock %}
+{% endblock %}

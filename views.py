@@ -1,166 +1,197 @@
-from flask import render_template, request, session, flash, redirect, url_for, jsonify, Response
-from . import app, db, connection
+from flask import render_template, request, session, flash, redirect, url_for, jsonify, Response, make_response
+from . import app, db
 from tweepy import Cursor, parsers, TweepError
-from redis import InvalidResponse
 import uuid
 import json
 import threading
 import time
 import pprint
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 from bson import json_util
+from . import models
+from mongokit import ObjectId
+import shlex
 
-PREFIX = "tweets_"
-app.searches = []
+#stuff for supervisor
+import xmlrpclib
+from xmlrpclib import ResponseError
+import socket
 
-#TODO remove stream_search
-#TODO valid app.searchs.remove()
-def stream_search(uuid, search_term):
-    app.logger.debug("UUID %s : Search Term: %s" % (uuid, search_term))
-    try: 
-        start = datetime.now()
-        total_tweets = 0
-        total_tweets_geo = 0
-        for tweets in Cursor(app.twitter_api.search,q=search_term).pages():
-            if len(tweets.get('results')) == 0 and tweets.get('page') == 1:
-                app.logger.debug("UUID %s: ZERO Results" % (uuid, ))
-                app.redis.sadd("".join((PREFIX, uuid)), "No Results found")
-                break
-            elif len(tweets.get('results')) == 0:
-                app.logger.debug("No more results")
-                break
-            else:
-                for tweet in tweets.get('results'):
-                    total_tweets += 1
-                    if (tweet.get('geo')):
-                        total_tweets_geo += 1
-                        try:
-                            app.redis.sadd("".join((PREFIX, uuid)), json.dumps(tweet))
-                        except InvalidResponse:
-                            app.logger.debug("Invalid redis response")
-                            break
-        app.logger.debug("UUID %s: Completed" % (uuid,)) 
-        app.logger.debug("Time Taken %s" % (str(datetime.now() - start),))
-        app.logger.debug("Total Tweets %s --- Total GEO tweets %s" % (total_tweets, total_tweets_geo))
-        app.searches.remove(uuid)
-        app.logger.debug("removed uuid");   
-    except TweepError:
-        app.searches.remove(uuid)
-        app.redis.sadd("".join((uuid, PREFIX)),  "Invalid Query")
-        app.logger.debug("TweepError, Invalid Query")
+con = app.connection.geo_tweet_me
+
+def add_search_term(terms, search_id):
+    terms_doc = con.Terms.fetch().next()
+    _terms = terms_doc['terms']
+    _terms.append((terms, search_id))
+    terms_doc.update({"terms":_terms})
+    terms_doc.save()
+
+#@app.route("/older")
+def greater_10days():
+    date = datetime.now() - timedelta(10)
+    #for record in db.stream_tweets.find({"created_at": {"$gt": date }}):
+    db.stream_tweets.remove({"created_at": {"$gt": date }, "geotweetme":{"active": False}})
+
+    return json.dumps(db.stream_tweets.find({"created_at": {"$gt": date }, "geotweetme":{"active":False}}).count())
+    #db.posts.find({author: "Mike", created_on: {$gt: start, $lt: end}});
 
 
-@app.route("/api/search", methods=["GET"])
-def api_search():
-    print request.args
-    try:
-        terms = request.args["q"]
-    except KeyError:
-        return Response(status=400, response="No Search Term Provided")
-    try:
-        geocode = request.args["geocode"]
-        print request.args["geocode"]
-    except KeyError:
-        return Response(status=400)
-        pass
+def complete_search(search_id, terms):
+    app.logger.debug("Starting  Search with Terms: %s" % (terms))
+    total_tweets = con.stream_tweets.count()
+    for tweet in con.stream_tweets.text(terms, limit=total_tweets).get('results'):
+        _tweet = con.Tweet.find_one({"_id":ObjectId(tweet.get('obj').get('_id'))})
 
-    session['id'] = str(uuid.uuid4())
-    app.redis.lpush("searches", session.get('id'))
-    app.redis.hmset(session.get('id'), 
-                    {"search_terms":request.form.get("Melbourne"),
-                    "uuid":session.get('id'),
-                    })
-    # TODO: Pass the data to redis set, load back out using session id
-    print session.get('id')
+        #handle for documents that don't have the latest model
+        try:
+            _geotweet = _tweet.get("geotweetme")
+            searches = _geotweet["searches"]
+        except AttributeError:
+            searches = []
+        except KeyError:
+            searches = []
+        except TypeError:
+            searches = []
+        searches.append(ObjectId(search_id))
 
-    app.searches.append(session.get('id'))
-
-    threading.Thread(target=stream_search, args=(session.get('id'),terms)).start()
-
-    return Response(status=200, response=session.get('id')) 
+        _tweet.update({"geotweetme":{"active":True, "searches":searches}})
+        _tweet.save()
+        #con.stream_tweets.find_and_modify({"_id":_id}, {"$set": { 'geotweetme.active': True }})
+        con.searches.find_and_modify({"_id":ObjectId(search_id)}, {"$push":{"tweets":tweet}})
+    app.logger.debug("Search Complete with Terms: %s" % (terms))
 
 
-#Actual API stuff
-@app.route("/api/<uuid>")
-def search_tweets(uuid):
-    if uuid in app.searches:
-        return jsonify({'results':list(app.redis.smembers("".join((PREFIX, uuid)))), 'completed':'false'})
+@app.route("/", methods=["GET"])
+def index_search():
+    if request.args:
+        try:
+            if not request.args['q']:
+                flash("No search term provided", category="error")
+                return redirect(url_for("index_search"))
+
+            #lower all search terms, we lower the twitter text (PEoPLE writE RUBBish!11)
+            terms = request.args['q'].lower()
+            #Check that this hasnt already been searched
+            if con.searches.find_one({"terms":[terms]}):
+                flash("Search Already Exists", category="error")
+                return redirect(url_for("index_search"))
+
+            new_search = con.Search() #init to set default values
+            new_search.update({"tweets":[], "terms":[unicode(terms)]})
+            new_search.save()
+
+            add_search_term(shlex.split(terms), new_search['_id'])
+
+            #spin up a new thread so we don't lock the user
+            threading.Thread(target=complete_search, args=(new_search['_id'],terms)).start()
+
+            flash("Success - Search Created", category="success")
+            return redirect(url_for("index_search"))
+        except KeyError:
+            flash("Failed - KeyError", category="error")
+            return redirect(url_for("index_search"))
     else:
-        return jsonify({'results':list(app.redis.smembers("".join((PREFIX, uuid)))), 'completed':'true'})
+        return render_template("search.html")
+    
 
-#Ajax stuff
-#Todo move to into seperate 'api' views and correctly use GET/POST
-@app.route("/api/searches/<int:num_searches>", methods=["GET"])
-def get_searchs(num_searches):
-    print num_searches
-    return json.dumps(app.redis.lrange("searches", 0, num_searches))
-
-@app.route("/api/searches/all")
-def all_searches():
-    return json.dumps(app.redis.lrange("searches", 0, -1))
-
-@app.route("/api/search/<string:uuid>")
-def get_search(uuid):
-    return json.dumps(list(app.redis.smembers("".join((PREFIX, uuid)))))
-
-@app.route("/api/data/<string:uuid>")
-def get_details(uuid):
-    return json.dumps(app.redis.hgetall(uuid))
-#@app.route
-
-@app.route("/test/session")
-def test_session():
-    return json.dumps({"session":session.get('id', None)})
-
-#Use wtforms 
-@app.route("/")
-def root():
-    return render_template("map.html")
-
-#TODO use wtforms for  validation, and move this to root.  check if its POST
-@app.route("/search", methods=["POST"])
-def search(): 
-    session['id'] = str(uuid.uuid4())
-    app.redis.lpush("searches", session.get('id'))
-    app.redis.hmset(session.get('id'), 
-                    {"search_terms":request.form.get("search_terms"),
-                    "location":request.form.get("location"),
-                    "radius":request.form.get("radius"),
-                    "uuid":session.get('id'),
-                    })
-    threading.Thread(target=stream_search, args=(session.get('id'), 
-                                                request.form.get('search_terms'),
-                                                request.form.get('location'),
-                                                request.form.get('radius'),)).start()
-    flash("Searching Twitter")
-    return redirect(url_for("root"))
-
-@app.route("/test")
-def test():
-    return render_template("heat.html")
+#API routes, all should return JSON with a resonably similar syntax
+#eg results{}
+@app.route("/api/search/previous")
+def previous_searches():
+    searches = []
+    for search in con.searches.find():
+        _dict = {}
+        try:
+            _dict["Tweets"] = len(search['tweets'])
+            _dict["Created"] = search["created_at"]
+            _dict["Terms"] = search["terms"]
+            _dict["_id"] = search["_id"]
+        except KeyError:
+            return Response(status=501, response="KeyError when building previous search results")
+        searches.append(_dict)
+    return json.dumps({'results':searches, 'headers':['Terms', 'Tweets', 'Created']}, default=json_util.default)
 
 
-@app.route("/lat")
-def search_location():
-    locations = []
-    for data in db.stream_tweets.find({"geo.coordinates": {"$maxDistance":10, "$near":[37, 144]}}):
-        locations.append(data)
-    return json.dumps(locations, default=json_util.default)
+def remove_terms(_id):
+    search_id = ObjectId(_id)
+    terms_doc = con.Terms.fetch().next()
+    terms_list = terms_doc['terms']
+    for search in terms_list:
+        if search[1] == search_id:
+            terms_list.remove(search)
+    terms_doc.update({"terms":terms_list})
+    terms_doc.save()
 
-@app.route("/boston")
-def twapper_boston():
+def inactivate_tweets(search_object):
+    for tweet in search_object.get("tweets"):
+        try:
+            _tweet = con.Tweet.find_one({"_id":ObjectId(tweet.get('obj').get('_id'))})
+        except AttributeError:
+            _tweet = con.Tweet.find_one({"_id":ObjectId(tweet.get('_id'))})
+        #only if search list is 0/None will we inactivate it
+        if not (_tweet.get('geotweetme').get('searches')):
+            _tweet.update({"geotweetme":{"active":False}})
+            _tweet.save()
+
+
+@app.route("/api/search/<_id>/delete")
+def delete_search(_id):
+    remove_terms(_id)
+    inactivate_tweets(con.Search.find_one({"_id":ObjectId(_id)}))
+    con.searches.remove({"_id":ObjectId(_id)})
+    return redirect(url_for('index_search'))
+
+@app.route("/api/search/<_id>/json")
+def json_search(_id):
     tweets = []
-    for data in connection.yourtwapperkeeper.boston.find():
-        tweets.append(data)
-    return json.dumps({'results':tweets}, default=json_util.default)
+    filename = "".join((str(int(time.time())), "_tweets", ".json"))
+    for tweet in con.searches.find({"_id":ObjectId(_id)},{"tweets":"1"}):
+        tweets.append(tweet)
+    return Response(json.dumps(tweets, default=json_util.default), mimetype="text/plain", headers={"Content-Disposition":"attachment;filename="+filename})
 
-@app.route("/kapper")
-def kapper():
-   req = requests.get("http://www.research.iampondie.com/apiGetTweets.php?id=8&sm=&sd=&sy=&em=&ed=&ey=&o=&l=50000&from_user=&text=&lang=")
-   return req.text
+@app.route("/api/search/<_id>")
+def json_search(_id):
+    tweets = []
+    for tweet in con.searches.find({"_id":ObjectId(_id)},{"tweets":"1"}).sort("_id", 1):
+        tweets.append(tweet)
+    return json.dumps(tweets, default=json_util.default)
+
+@app.route("/api/search/<_id>/view")
+def view_search(_id):
+    pass
+
+@app.route("/live")
+def live():
+    return render_template("live.html")
+
+@app.route("/status")
+def status():
+    return render_template("status.html")
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+@app.route("/api/status")
+def get_supervisor_status():
+    return json.dumps({'results':app.supervisor.supervisor.getAllProcessInfo(), 'headers':['Name', 'State', 'Description']})
+
+@app.route("/api/tweets/total")
+def get_total_tweets():
+    return json.dumps({'results':con.stream_tweets.count()})
+
+@app.route("/api/latest/tweets/<time>")
+def latest_tweets(time):
+    #remove +10 hours - mongo has no timezone - TODO fix this
+    date = datetime.fromtimestamp(float(time)) - timedelta(0,36000)
+    tweets = []
+    for tweet in con.Tweet.find({"created_at":{"$gt":date }}).sort("_id",1):
+        tweets.append(tweet)
+    return json.dumps({"results":tweets}, default=json_util.default)
 
 
-@app.route("/ang")
-def angular_test():
-    return render_template("angular-js.html")
+@app.route("/search/<_id>/view")
+def view_search(_id):
+    return render_template("view_search.html")
+

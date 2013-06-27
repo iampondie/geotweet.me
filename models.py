@@ -1,17 +1,21 @@
 import datetime
-from . import db
 from mongokit import *
+#so we can import models, and not be tied to the
+#app context connection
+try:
+    from . import app
+    con = app.connection
+except ValueError:
+    con = Connection()
 
-connection = Connection()
-
-@connection.register
+@con.register
 class Tweet(Document):
     __collection__ = 'stream_tweets'
     __database__ = 'geo_tweet_me'
     use_schemaless = True
     structure = {
         'text':unicode,
-        'id':int,
+        'id': OR(int, long),
         'created_at': datetime.datetime, 
         'lang':unicode, #parse its a valid code (shouldbe)
         'coordinates': { 
@@ -28,13 +32,14 @@ class Tweet(Document):
                     },
 
         'user': {
-                    'id':int,
+                    'id': OR(long, int),
                     'verified': bool,
                     'location':unicode,
                     'created_at':datetime.datetime,
                     },
         'geotweetme': {
                     'active':bool,
+                    'searches':list,
             }
         }
     indexes = [
@@ -43,7 +48,7 @@ class Tweet(Document):
         },
     ]
 
-@connection.register
+@con.register
 class Search(Document):
     __collection__ = 'searches'
     __database__ = 'geo_tweet_me'
@@ -53,10 +58,18 @@ class Search(Document):
         'terms': list,
         'tweets': list,
     }
-    default_values = {'created_at': datetime.datetime.now}
+    default_values = {'created_at': datetime.datetime.now }
 
+@con.register
+class Terms(Document):
+    __collection__ = 'terms'
+    __database__ = 'geo_tweet_me'
 
-@connection.register
+    structure = {
+        'terms':list,
+    }
+
+@con.register
 class TwapperKeeper(Document):
     structure = {
         'text':unicode,
@@ -73,7 +86,7 @@ class TwapperKeeper(Document):
         },
     ]
 
-db.register([Search, Tweet])
+#db.register([Search, Tweet])
 
 if __name__ == "__main__":
     d = connection.Tweet({"text":"TEXT", "id":"1213", "created_at":"12112"})

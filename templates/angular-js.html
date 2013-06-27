@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
     <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
-    <script src="{{ url_for('static', filename='js/angular-leaflet-directive.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vendor/angular-leaflet-directive.js') }}"></script>
     
+    <script src="{{ url_for('static', filename='js/vendor/MarkerCluster.js') }}"></script>
     <style>
         html, body {
             margin: 0;
@@ -36,7 +37,7 @@
             $scope.bostonMarkers = function() {
                 $http({method: 'GET', url: '/boston'}).
                     success(function(data, status, headers, config) {
-                        for (var i=0; i<data.results.length; i++) {
+                       for (var i=0; i<10; i++) {//data.results.length; i++) {
                             $scope.addMarker(i, data.results[i].geo.coordinates[0],
                                             data.results[i].geo.coordinates[1]);
                         }
@@ -65,7 +66,7 @@
     </script>
 </head>
 <body ng-controller="mapController">
-    <leaflet markers="markers"></leaflet>
+    <leaflet testing="testing" markers="markers"></leaflet>
     <button ng-click="addMarker()">TEST</button>
     <button ng-click="delMarker(1)">DEL</button>
     <button ng-click="bostonMarkers()">boston</button>

@@ -13,15 +13,44 @@ from tweepy import TweepError
 
 class TwitterRecorder(StreamListener):
     def __init__(self):
-        self.total = 0 #Read tweet db size
-        print pymongo.version
-        models.connection.geo_tweet_me.stream_tweets.create_index([
+        models.con.geo_tweet_me.stream_tweets.create_index([
             ('geo.coordinates', pymongo.GEO2D), 
             ('created_at', 1),
         ])
-        models.connection.geo_tweet_me.stream_tweets.create_index([
+        models.con.geo_tweet_me.stream_tweets.create_index([
         ('text','text'),
         ])
+    
+    def ensure_index(self):
+        #Create index has TTL, ensure index will only run if TTL expired
+        models.con.geo_tweet_me.stream_tweets.create_index([
+            ('geo.coordinates', pymongo.GEO2D), 
+            ('created_at', 1),
+        ])
+        models.con.geo_tweet_me.stream_tweets.create_index([
+        ('text','text'),
+        ])
+    
+    def check_searched(self, new_tweet):
+        #get single document with terms
+        try: 
+            terms_doc = models.con.geo_tweet_me.Terms.fetch().next() 
+            terms_list = terms_doc['terms']
+        except StopIteration:
+            terms_list = []
+        
+        new_tweet['geotweetme']['searches'] = []
+
+        for terms in terms_list:
+            for _term in terms[0]:
+                if _term in new_tweet.get('text') or _term in new_tweet.get('text').split(" "):
+                    if not ObjectId(terms[1]) in new_tweet['geotweetme']['searches']:
+                        new_tweet['geotweetme']['searches'].append(ObjectId(terms[1]))
+
+        new_tweet.save()
+        for search in new_tweet['geotweetme']['searches']:
+            models.con.geo_tweet_me.searches.find_and_modify({"_id":ObjectId(search)}, {"$push":{"tweets":{'obj':new_tweet}}})
+
 
     def to_datetime(self, value):
         #return datetime object from created_at string
@@ -30,11 +59,14 @@ class TwitterRecorder(StreamListener):
     def handle_coordinates(self, data):
         json_data = json.loads(data)
         #we only want tweets, that are geotagged and english
+        #also lower text
         if json_data.get('geo') and json_data.get('lang') == 'en':
             needed_data = {} 
             for key, value in models.Tweet.structure.iteritems():
                 if key == "created_at":
                     needed_data[key] = self.to_datetime(json_data.get(key))
+                elif key == "text":
+                    needed_data[key] = json_data.get(key).lower()
                 elif key == "geotweetme":
                     needed_data[key] = {}
                     needed_data[key]['active'] = False
@@ -54,10 +86,9 @@ class TwitterRecorder(StreamListener):
                     needed_data[key] = json_data.get(key)
 
             #user logger
-            new_tweet = models.connection.Tweet(needed_data)
-            new_tweet.save()
-            print "Added Tweet - total: %s" % self.total
-            self.total += 1
+            new_tweet = models.con.Tweet(needed_data)
+            self.check_searched(new_tweet)
+            self.ensure_index()
 
     def on_data(self, data):
         self.handle_coordinates(data)
@@ -65,11 +96,6 @@ class TwitterRecorder(StreamListener):
     
     def on_error(self, status):
         print "ERROR: %s" % str(status)
-
-print settings.CONSUMER_KEY
-print settings.CONSUMER_SECRET
-print settings.ACCESS_TOKEN
-print settings.ACCESS_TOKEN_SECRET
 
 out = TwitterRecorder()
 auth = tweepy.OAuthHandler(settings.CONSUMER_KEY, settings.CONSUMER_SECRET)

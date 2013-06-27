@@ -1,0 +1,85 @@
+{% extends 'tmpl.html' %}
+{% set active_page = "live" %}
+{% block content %}
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
+    <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/MarkerCluster.Default.css') }}"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/MarkerCluster.css') }}"> 
+    <script type="text/javascript" src="{{ url_for('static', filename='js/controllers/statusCntl.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='js/vendor/leaflet.markercluster-src.js') }}"></script>
+
+    <style>
+        }
+        .angular-leaflet-map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script>
+        function mapCntl($scope, $http)  {
+
+            var cluster = new L.MarkerClusterGroup();
+
+            var map = L.map('map').setView([0, 0], 2);
+            L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+            $scope.createMarkers = function(lat, lng) {
+                return L.marker(new L.LatLng(lat, lng));
+            }   
+    
+            //not the best
+            $scope.search_id = location.pathname.split("/")[2];
+
+
+            $http.get('/api/search/' + $scope.search_id).success(
+                function(data) {
+                    console.log(data);
+                    $scope.tweets = data[0].tweets;
+                    if ($scope.tweets.length > 1000) {
+                        for (var i = 0; i < $scope.tweets.length; i++) {
+                            cluster.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1]));
+                        }
+                        map.addLayer(cluster);
+                    } else {
+                        for (var i = 0; i < $scope.tweets.length; i++) {
+                            map.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1]));
+                        }
+                    }
+                }).error(
+                function(data) {
+                    console.log("Failed getting search tweets");
+                    console.log(data);
+            });
+
+           // setInterval(function () {
+           //     $scope.$apply(function () {
+           //         $http.get('/api/latest/tweets/'+$scope.latestDate.format('X')).success(
+           //             function(data){
+           //                 $scope.tweets = data.results; 
+           //                 $scope.tweet_css = "";
+           //             }).error(function(data) {
+           //                 console.log("Failed retrieving latest tweets");
+           //                 console.log(data);  
+           //         });
+           //     });
+           // }, 1000);
+
+            $scope.$watch('tweets', function(newdata, olddata) {
+                if (newdata && olddata) {
+                    for (var i = 0; i < $scope.tweets.length; i++) {
+                        map.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1]));
+                    }
+                }
+            });
+        }
+    </script>
+
+    <div class="container" ng-controller="mapCntl">
+        <div id="map" class="map" style="width: 100%; height: 700px"></div>
+    </div>
+
+{% endblock %}

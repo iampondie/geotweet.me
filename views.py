@@ -153,9 +153,10 @@ def json_search(_id):
 @app.route("/api/search/<_id>")
 def json_search(_id):
     tweets = []
+    terms = con.Search.find({"_id":ObjectId(_id)}, {"terms":1}).next().get('terms')
     for tweet in con.searches.find({"_id":ObjectId(_id)},{"tweets":"1"}).sort("_id", 1):
         tweets.append(tweet)
-    return json.dumps(tweets, default=json_util.default)
+    return json.dumps({'results':tweets, 'terms':terms}, default=json_util.default)
 
 @app.route("/api/search/<_id>/view")
 def view_search(_id):

@@ -35,6 +35,7 @@
                     for (var i = 0; i < $scope.tweets.length; i++) {
                         map.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1]));
                         $scope.latestDate = moment($scope.tweets[i].created_at["$date"]);
+                        $scope.latestText = $scope.tweets[i].text;
                     }
                 }).error(
                 function(data) {
@@ -47,7 +48,6 @@
                     $http.get('/api/latest/tweets/'+$scope.latestDate.format('X')).success(
                         function(data){
                             $scope.tweets = data.results; 
-                            $scope.tweet_css = "";
                         }).error(function(data) {
                             console.log("Failed retrieving latest tweets");
                             console.log(data);  
@@ -60,6 +60,7 @@
                     for (var i = 0; i < $scope.tweets.length; i++) {
                         map.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1]));
                         $scope.latestDate = moment($scope.tweets[i].created_at["$date"]);
+                        $scope.latestText = $scope.tweets[i].text;
                     }
                 }
             });
@@ -70,8 +71,10 @@
         <h2>Total Tweets: <span ng-class="tweet_css" class="update">[< totalTweets >]</span></h2>
     </div>
     <div class="container" ng-controller="mapCntl">
-        <div id="map" class="map" style="width: 100%; height: 700px"></div>
-        <div>SOME data </div>
+        <div id="map" class="map" style="width: 100%; height: 600px"></div>
+        <div class="container pagination-centered">
+             <h2>[< latestText >]</h2>
+        </div>
     </div>
 
 {% endblock %}

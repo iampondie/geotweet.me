@@ -36,3 +36,5 @@ nosetests.xml
 settings.py
 *.swp
 config/*.conf
+logs/*
+mongodb/*

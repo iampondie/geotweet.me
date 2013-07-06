@@ -18,8 +18,16 @@
         }
     </style>
     <script>
+        $(function() {
+        });
+
         function mapCntl($scope, $http)  {
 
+            $("#slider").dateRangeSlider();
+
+            $("#slider").bind("valuesChanged", function(e, data){
+              console.log("Values just changed. min: " + data.values.min + " max: " + data.values.max);
+            });
             var cluster = new L.MarkerClusterGroup();
 
             var map = L.map('map').setView([0, 0], 2);
@@ -82,16 +90,16 @@
             });
         }
     </script>
-
     <div class="container" ng-controller="mapCntl">
-	<div class="container pagination-centered">
+        <div class="container pagination-centered">
             <h2>Terms:</h2>
-	    <h1>[< terms >]</h1>
-	</div>
+	        <h1>[< terms >]</h1>
+	    </div>
         <div id="map" class="map" style="width: 100%; height: 700px"></div>
         <div class="container pagination-centered">
             <h2 id="tweet_text"></h2>
         </div>
+        <br>
+        <div id="slider"></div>
     </div>
-
-{% endblock %}
+    {% endblock %}

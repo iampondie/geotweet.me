@@ -38,3 +38,4 @@ settings.py
 config/*.conf
 logs/*
 mongodb/*
+setup.py

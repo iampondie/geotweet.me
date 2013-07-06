@@ -102,7 +102,7 @@ auth = tweepy.OAuthHandler(settings.CONSUMER_KEY, settings.CONSUMER_SECRET)
 auth.set_access_token(settings.ACCESS_TOKEN, settings.ACCESS_TOKEN_SECRET)
 
 try:
-    api = tweepy.API(auth)
+    api = tweepy.API(auth) 
 #   print api.me().name
 except TweepError as e:
     print e

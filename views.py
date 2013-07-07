@@ -42,7 +42,6 @@ def complete_search(search_id, terms):
     total_tweets = con.stream_tweets.count()
     for tweet in con.stream_tweets.text(terms, limit=total_tweets).get('results'):
         _tweet = con.Tweet.find_one({"_id":ObjectId(tweet.get('obj').get('_id'))})
-
         #handle for documents that don't have the latest model
         try:
             _geotweet = _tweet.get("geotweetme")
@@ -157,6 +156,20 @@ def json_search(_id):
     for tweet in con.searches.find({"_id":ObjectId(_id)},{"tweets":"1"}).sort("_id", 1):
         tweets.append(tweet)
     return json.dumps({'results':tweets, 'terms':terms}, default=json_util.default)
+
+@app.route("/api/search/<_id>/date/<_from>/<_to>")
+def json_date_search(_id, _from, _to):
+    _tweets = []
+    start = datetime.fromtimestamp(int(_from))    
+    end = datetime.fromtimestamp(int(_to))
+
+    tweets = con.stream_tweets.find({"geotweetme.searches" : ObjectId(_id), "created_at":{"$gt":start, "$lte":end}})
+    
+    #tweets = con.searches.aggregate([{"$match":{"_id":ObjectId(_id)}}, {"$unwind":"$tweets"}, {"$match":{"created_at":{"$gte":start, "$lt":end}}}, {"$project" : {"tweets": 1}}])
+    for tweet in tweets:
+        _tweets.append({"obj":tweet})
+    return json.dumps({'results':_tweets}, default=json_util.default)
+
 
 @app.route("/api/search/<_id>/view")
 def view_search(_id):

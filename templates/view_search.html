@@ -10,25 +10,35 @@
     
     <script src="{{ url_for('static', filename='js/vendor/leaflet.markercluster-src.js') }}"></script>
 
-    <style>
-        }
-        .angular-leaflet-map {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
     <script>
-        $(function() {
-        });
-
         function mapCntl($scope, $http)  {
+            //not the best
+            $scope.search_id = location.pathname.split("/")[2];
 
-            $("#slider").dateRangeSlider();
+            function setSlider(start, end) {
+                $("#dateSlider").dateRangeSlider({
+                    bounds: {
+                        min: new Date(start),
+                        max: new Date(end)
+                    },
+                    defaultValues: {
+                        min: new Date(start),
+                        max: new Date(end)
+                    },
+                });
 
-            $("#slider").bind("valuesChanged", function(e, data){
-              console.log("Values just changed. min: " + data.values.min + " max: " + data.values.max);
-            });
+                $("#dateSlider").bind("valuesChanged", function(e, data){
+                    start = moment(data.values.min).format('X');
+                    end = moment(data.values.max).format('X');
+                    $http.get('/api/search/' + $scope.search_id + '/date/' + start + '/' + end).success(
+                        function(data) {
+                        $scope.tweets = data.results;
+                    });    
+                });  
+            }
+
             var cluster = new L.MarkerClusterGroup();
+            var markers = new L.layerGroup();
 
             var map = L.map('map').setView([0, 0], 2);
             L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
@@ -43,49 +53,41 @@
                 return marker;
             }   
     
-            //not the best
-            $scope.search_id = location.pathname.split("/")[2];
-
-
+            function drawMarkers() {
+                cluster.clearLayers();
+                markers.clearLayers();
+                if ($scope.tweets.length > 1000) {
+                    for (var i = 0; i < $scope.tweets.length; i++) {
+                        cluster.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1], $scope.tweets[i].obj.text));
+                    }
+                map.addLayer(cluster);
+                } else {
+                    for (var i = 0; i < $scope.tweets.length; i++) {
+                        markers.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1], $scope.tweets[i].obj.text));
+                    }
+                map.addLayer(markers);
+                }
+            }
+                    
             $http.get('/api/search/' + $scope.search_id).success(
                 function(data) {
-                    console.log(data);
                     $scope.tweets = data.results[0].tweets;
                     $scope.terms = data.terms[0]
-                    if ($scope.tweets.length > 1000) {
-                        for (var i = 0; i < $scope.tweets.length; i++) {
-                            cluster.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1], $scope.tweets[i].obj.text));
-                        }
-                        map.addLayer(cluster);
-                    } else {
-                        for (var i = 0; i < $scope.tweets.length; i++) {
-                            map.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1], $scope.tweets[i].obj.text));
-                        }
-                    }
+
+                    setSlider($scope.tweets[0].obj.created_at["$date"], $scope.tweets[$scope.tweets.length - 1].obj.created_at["$date"]);
+
+                    drawMarkers();
                 }).error(
                 function(data) {
                     console.log("Failed getting search tweets");
                     console.log(data);
             });
+            
 
-           // setInterval(function () {
-           //     $scope.$apply(function () {
-           //         $http.get('/api/latest/tweets/'+$scope.latestDate.format('X')).success(
-           //             function(data){
-           //                 $scope.tweets = data.results; 
-           //                 $scope.tweet_css = "";
-           //             }).error(function(data) {
-           //                 console.log("Failed retrieving latest tweets");
-           //                 console.log(data);  
-           //         });
-           //     });
-           // }, 1000);
 
             $scope.$watch('tweets', function(newdata, olddata) {
                 if (newdata && olddata) {
-                    for (var i = 0; i < $scope.tweets.length; i++) {
-                        map.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1]));
-                    }
+                   drawMarkers();
                 }
             });
         }
@@ -95,11 +97,12 @@
             <h2>Terms:</h2>
 	        <h1>[< terms >]</h1>
 	    </div>
-        <div id="map" class="map" style="width: 100%; height: 700px"></div>
+        <div id="map" class="map" style="width: 100%; height: 500px"></div>
         <div class="container pagination-centered">
             <h2 id="tweet_text"></h2>
         </div>
         <br>
-        <div id="slider"></div>
+        <div class="pagination-centered">Select Date:</div>
+        <div id="dateSlider"></div>
     </div>
     {% endblock %}

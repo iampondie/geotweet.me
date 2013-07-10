@@ -46,7 +46,7 @@ function prevSearchCntl($scope, $http) {
                 });
             });
         
-    }, 1000);
+    }, 1500);
     
     //$scope.$watch('searches', function(newval, oldval) {
     //    console.log($scope.searches.length);

@@ -1,12 +1,15 @@
 from flask import render_template, request, session, flash, redirect, url_for, jsonify, Response, make_response
+from werkzeug import secure_filename
 from . import app, db
 from tweepy import Cursor, parsers, TweepError
 import uuid
+import os
 import json
 import threading
 import time
 import pprint
 from datetime import datetime, timedelta
+import dateutil.parser
 import requests
 from bson import json_util
 from . import models
@@ -32,7 +35,6 @@ def greater_10days():
     date = datetime.now() - timedelta(10)
     #for record in db.stream_tweets.find({"created_at": {"$gt": date }}):
     db.stream_tweets.remove({"created_at": {"$gt": date }, "geotweetme":{"active": False}})
-
     return json.dumps(db.stream_tweets.find({"created_at": {"$gt": date }, "geotweetme":{"active":False}}).count())
     #db.posts.find({author: "Mike", created_on: {$gt: start, $lt: end}});
 
@@ -53,7 +55,6 @@ def complete_search(search_id, terms):
         except TypeError:
             searches = []
         searches.append(ObjectId(search_id))
-
         _tweet.update({"geotweetme":{"active":True, "searches":searches}})
         _tweet.save()
         #con.stream_tweets.find_and_modify({"_id":_id}, {"$set": { 'geotweetme.active': True }})
@@ -61,38 +62,127 @@ def complete_search(search_id, terms):
     app.logger.debug("Search Complete with Terms: %s" % (terms))
 
 
-@app.route("/", methods=["GET"])
+@app.route("/", methods=["GET", "POST"])
 def index_search():
-    if request.args:
+    if request.method == 'GET':
+        if request.args:
+            try:
+                if not request.args['q']:
+                    flash("No search term provided", category="error")
+                    return redirect(url_for("index_search"))
+
+                #lower all search terms, we lower the twitter text (PEoPLE writE RUBBish!11)
+                terms = request.args['q'].lower()
+                #Check that this hasnt already been searched
+                if con.searches.find_one({"terms":[terms]}):
+                    flash("Search Already Exists", category="error")
+                    return redirect(url_for("index_search"))
+
+                new_search = con.Search() #init to set default values
+                new_search.update({"tweets":[], "terms":[unicode(terms)]})
+                new_search.save()
+
+                add_search_term(shlex.split(terms), new_search['_id'])
+
+                #spin up a new thread so we don't lock the user
+                threading.Thread(target=complete_search, args=(new_search['_id'],terms)).start()
+
+                flash("Success - Search Created", category="success")
+                return redirect(url_for("index_search"))
+            except KeyError:
+                flash("Failed - KeyError", category="error")
+                return redirect(url_for("index_search"))
+        else:
+            return render_template("search.html")
+    elif request.method == 'POST':
+        _file = request.files['file']
+        if not _file:
+            flash("No data in upload", "error")
+            return render_template("search.html")
+        
+        filename = secure_filename(_file.filename)
+        _file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        #Handling twapperkeeper - expect {"archive_info" at begining of file
         try:
-            if not request.args['q']:
-                flash("No search term provided", category="error")
-                return redirect(url_for("index_search"))
+            with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), "r") as f:
+                if not f.read(15) == '{"archive_info"':
+                    os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    flash("Invalid twitter data, unable to import", "error")
+                    return render_template("search.html")
+                f.seek(0)
+                json.load(f)
+        except IOError:
+            flash("IOError, unable to upload", "error")
+            return redirect(url_for('index_search'))
+        except ValueError:
+            flash("Malformed data, unable to upload", "error")
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('index_search'))
 
-            #lower all search terms, we lower the twitter text (PEoPLE writE RUBBish!11)
-            terms = request.args['q'].lower()
-            #Check that this hasnt already been searched
-            if con.searches.find_one({"terms":[terms]}):
-                flash("Search Already Exists", category="error")
-                return redirect(url_for("index_search"))
-
-            new_search = con.Search() #init to set default values
-            new_search.update({"tweets":[], "terms":[unicode(terms)]})
-            new_search.save()
-
-            add_search_term(shlex.split(terms), new_search['_id'])
-
-            #spin up a new thread so we don't lock the user
-            threading.Thread(target=complete_search, args=(new_search['_id'],terms)).start()
-
-            flash("Success - Search Created", category="success")
-            return redirect(url_for("index_search"))
-        except KeyError:
-            flash("Failed - KeyError", category="error")
-            return redirect(url_for("index_search"))
+        #Spin up thread to import data
+        threading.Thread(target=import_tweets, args=(filename,)).start()
+        flash("Data uploaded, importing now", "success")
+        return redirect(url_for('index_search'))
     else:
-        return render_template("search.html")
-    
+        render_template("search.html")
+
+def import_tweets(filename):
+    app.logger.debug("Starting Tweet imports")
+    with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), "r") as f:
+        _dict = json.load(f)
+
+    terms = _dict.get("archive_info").get("keyword")
+
+    new_search = con.Search() #init to set default values
+    new_search.update({"tweets":[], "terms":[unicode(terms)]})
+    new_search.save()
+
+    for tweet in _dict.get("tweets"):
+        data = {}
+        for key, val in con.Tweet.structure.iteritems():
+            if key == 'created_at':
+                data[key] = dateutil.parser.parse(tweet.get(key))
+            elif key == 'lang':
+                data[key] = u'en'
+            elif key == 'id':
+                data[key] = long(tweet.get(key))
+            elif key == 'geo':
+                if tweet.get('geo_coordinates_0') != '0' and tweet.get('geo_coordinates_1') != '0':
+                    data[key] = {'type':u'Point', 'coordinates':((float(tweet.get('geo_coordinates_0'))), float(tweet.get('geo_coordinates_1')))}
+                    data['geotweetme'] = {'geotagged':True}
+                else:
+                    data['geotweetme'] = {'geotagged':False}
+                    data[key] = {'type':u'Point', 'coordinates':((0,0))}
+            elif key == 'entities':
+               data[key] = {} 
+            elif key == 'user':
+                data[key] = {'id':long(tweet.get('id')), 'location':u'None', 'verified':False}
+            elif key == 'geotweetme':
+                data[key] = {'active':True, 'searches':['_id']}
+            else:
+                data[key] = tweet.get(key)
+        
+        new_tweet = con.Tweet()
+        new_tweet.update(data)
+        new_tweet.save()
+
+        con.searches.find_and_modify({"_id":ObjectId(new_search['_id'])}, {"$push":{"tweets":{'obj':new_tweet}}})
+
+
+    app.logger.debug("Import Completed")
+    #new_search = con.Search() #init to set default values
+
+    #new_search.update({"tweets":[], "terms":[unicode(terms)]})
+    #new_search.save()
+
+
+    #if search term already exists add to current, otherwise create a new
+    #set tweets that are imported to geotweetme.twapperkeeper = True
+    #add to search record that twapperkeeper used with created_at from timestamp
+    #print _dict.get("archive_info")
+    #print _dict.get("tweets")[0]
+
 
 #API routes, all should return JSON with a resonably similar syntax
 #eg results{}
@@ -122,7 +212,9 @@ def remove_terms(_id):
     terms_doc.update({"terms":terms_list})
     terms_doc.save()
 
-def inactivate_tweets(search_object):
+def inactivate_tweets(_id):
+    search_object = con.Search.find_one({"_id":ObjectId(_id)})
+    con.searches.remove({"_id":ObjectId(_id)})
     for tweet in search_object.get("tweets"):
         try:
             _tweet = con.Tweet.find_one({"_id":ObjectId(tweet.get('obj').get('_id'))})
@@ -133,12 +225,10 @@ def inactivate_tweets(search_object):
             _tweet.update({"geotweetme":{"active":False}})
             _tweet.save()
 
-
 @app.route("/api/search/<_id>/delete")
 def delete_search(_id):
     remove_terms(_id)
-    inactivate_tweets(con.Search.find_one({"_id":ObjectId(_id)}))
-    con.searches.remove({"_id":ObjectId(_id)})
+    threading.Thread(target=inactivate_tweets, args=(_id,)).start()
     return redirect(url_for('index_search'))
 
 @app.route("/api/search/<_id>/json")

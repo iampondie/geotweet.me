@@ -138,6 +138,8 @@ def import_tweets(filename):
     new_search.update({"tweets":[], "terms":[unicode(terms)]})
     new_search.save()
 
+    tweets = []
+
     for tweet in _dict.get("tweets"):
         data = {}
         for key, val in con.Tweet.structure.iteritems():
@@ -167,9 +169,10 @@ def import_tweets(filename):
         new_tweet.update(data)
         new_tweet.save()
 
-        con.searches.find_and_modify({"_id":ObjectId(new_search['_id'])}, {"$push":{"tweets":{'obj':new_tweet}}})
+        tweets.append({'obj':new_tweet})
 
-
+    con.searches.find_and_modify({"_id":ObjectId(new_search['_id'])}, {"$set":{'tweets':tweets}})
+    #con.stream_tweets.find_and_modify({"_id":_id}, {"$set": { 'geotweetme.active': True }})
     app.logger.debug("Import Completed")
     #new_search = con.Search() #init to set default values
 

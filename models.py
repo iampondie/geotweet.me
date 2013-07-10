@@ -18,10 +18,6 @@ class Tweet(Document):
         'id': OR(int, long),
         'created_at': datetime.datetime, 
         'lang':unicode, #parse its a valid code (shouldbe)
-        'coordinates': { 
-                    'type':unicode,
-                    'coordinates': (OR(float, int), OR(float, int)), 
-                    },
         'geo': { 
                     'type':unicode,
                     'coordinates': (OR(float, int), OR(float, int)), 
@@ -40,6 +36,8 @@ class Tweet(Document):
         'geotweetme': {
                     'active':bool,
                     'searches':list,
+                    'twapperkeeper':bool,
+                    'geotagged':bool,
             }
         }
     indexes = [
@@ -57,8 +55,11 @@ class Search(Document):
         'created_at': datetime.datetime,
         'terms': list,
         'tweets': list,
+        'geotweetme': {
+            'twapperkeeper': bool,
+        }
     }
-    default_values = {'created_at': datetime.datetime.now }
+    default_values = {'created_at': datetime.datetime.now, 'geotweetme':{'twapperkeeper':False}}
 
 @con.register
 class Terms(Document):

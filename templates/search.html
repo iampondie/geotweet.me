@@ -4,7 +4,7 @@
         <div class="container pagination-centered" >
             <div class="row">
                 <div class="span6">
-                    <form class="form-search" method="GET" action="/">
+                    <form class="form-search" method="GET" action="/" id="search">
                         <h1>Search</h1>
                         <input type="text" name="q" class="input-medium search-query">
                         <button type="submit" class="btn btn-primary">Search</button>
@@ -13,12 +13,12 @@
                 </div>
                 <div class="span6">
                     <h1>Import</h1>
-                        <form method="POST" enctype=multipart/form-data action="/">
+                        <form method="POST" enctype="multipart/form-data" action="/" id="import">
                             <div class="fileupload fileupload-new" data-provides="fileupload">
                                 <span class="btn btn-file">
                                     <span class="fileupload-new">Select file</span>
                                     <span class="fileupload-exists">Change</span>
-                                    <input type="file" />
+                                    <input type="file" name="file" />
                                 </span>
                                 <span class="fileupload-preview"></span>
                                 &nbsp;

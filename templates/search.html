@@ -2,12 +2,32 @@
 {% set active_page = "search" %}
 {% block content %}
         <div class="container pagination-centered" >
-            <form class="form-search" method="GET" action="/">
-                <h1>Enter Search Terms:</h1>
-                <input type="text" name="q" class="input-medium search-query">
-                <button type="submit" class="btn btn-primary">Search</button>
-            </form>
-            <p>All Searches performed in lower case</p>
+            <div class="row">
+                <div class="span6">
+                    <form class="form-search" method="GET" action="/">
+                        <h1>Search</h1>
+                        <input type="text" name="q" class="input-medium search-query">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </form>
+                    <p>All Searches performed in lower case</p>
+                </div>
+                <div class="span6">
+                    <h1>Import</h1>
+                        <form method="POST" enctype=multipart/form-data action="/">
+                            <div class="fileupload fileupload-new" data-provides="fileupload">
+                                <span class="btn btn-file">
+                                    <span class="fileupload-new">Select file</span>
+                                    <span class="fileupload-exists">Change</span>
+                                    <input type="file" />
+                                </span>
+                                <span class="fileupload-preview"></span>
+                                &nbsp;
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                            </div>
+                        </form>
+                    <p>Only TwapperKeeper import currently supported</p>
+                </div>
+            </div>
         </div>
         <br>
         <h3>Previous Searches</h3>

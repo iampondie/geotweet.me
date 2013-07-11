@@ -141,6 +141,7 @@ def import_tweets(filename):
     tweets = []
 
     for tweet in _dict.get("tweets"):
+        i = 0
         data = {}
         for key, val in con.Tweet.structure.iteritems():
             if key == 'created_at':
@@ -152,24 +153,23 @@ def import_tweets(filename):
             elif key == 'geo':
                 if tweet.get('geo_coordinates_0') != '0' and tweet.get('geo_coordinates_1') != '0':
                     data[key] = {'type':u'Point', 'coordinates':((float(tweet.get('geo_coordinates_0'))), float(tweet.get('geo_coordinates_1')))}
-                    data['geotweetme'] = {'geotagged':True}
+                    data['geotweetme'] = {'geotagged':True, 'active':True, 'searches':[new_search['_id']]}
                 else:
-                    data['geotweetme'] = {'geotagged':False}
+                    data['geotweetme'] = {'geotagged':False, 'active':True, 'searches':[new_search['_id']]}
                     data[key] = {'type':u'Point', 'coordinates':((0,0))}
             elif key == 'entities':
                data[key] = {} 
             elif key == 'user':
                 data[key] = {'id':long(tweet.get('id')), 'location':u'None', 'verified':False}
-            elif key == 'geotweetme':
-                data[key] = {'active':True, 'searches':['_id']}
+            #elif key == 'geotweetme':
+            #    data[key] = {'active':True, 'searches':new_search['_id']}
             else:
+            #    print tweet.get(key)
                 data[key] = tweet.get(key)
-        
-        new_tweet = con.Tweet()
-        new_tweet.update(data)
-        new_tweet.save()
 
-        tweets.append({'obj':new_tweet})
+        new_tweet = con.Tweet(data)
+        new_tweet.save()
+        tweets.append(new_tweet['_id'])
 
     con.searches.find_and_modify({"_id":ObjectId(new_search['_id'])}, {"$set":{'tweets':tweets}})
     #con.stream_tweets.find_and_modify({"_id":_id}, {"$set": { 'geotweetme.active': True }})
@@ -244,9 +244,14 @@ def json_search(_id):
 
 @app.route("/api/search/<_id>")
 def json_search(_id):
+    print "search"
     tweets = []
+    
     terms = con.Search.find({"_id":ObjectId(_id)}, {"terms":1}).next().get('terms')
-    for tweet in con.searches.find({"_id":ObjectId(_id)},{"tweets":"1"}).sort("_id", 1):
+
+    _tweets = con.stream_tweets.find({"geotweetme.searches":{"$in":[ObjectId(_id)]}}).sort("created_at", 1)
+
+    for tweet in _tweets: #con.searches.find({"_id":ObjectId(_id)},{"tweets":"1"}).sort("_id", 1):
         tweets.append(tweet)
     return json.dumps({'results':tweets, 'terms':terms}, default=json_util.default)
 
@@ -256,11 +261,11 @@ def json_date_search(_id, _from, _to):
     start = datetime.fromtimestamp(int(_from))    
     end = datetime.fromtimestamp(int(_to))
 
-    tweets = con.stream_tweets.find({"geotweetme.searches" : ObjectId(_id), "created_at":{"$gt":start, "$lte":end}})
+    tweets = con.stream_tweets.find({"geotweetme.searches" : {"$in": [ObjectId(_id)]}, "created_at":{"$gt":start, "$lte":end}}).sort("_id", 1)
     
     #tweets = con.searches.aggregate([{"$match":{"_id":ObjectId(_id)}}, {"$unwind":"$tweets"}, {"$match":{"created_at":{"$gte":start, "$lt":end}}}, {"$project" : {"tweets": 1}}])
     for tweet in tweets:
-        _tweets.append({"obj":tweet})
+        _tweets.append(tweet)
     return json.dumps({'results':_tweets}, default=json_util.default)
 
 

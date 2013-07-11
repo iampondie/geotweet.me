@@ -16,6 +16,7 @@ class TwitterRecorder(StreamListener):
         models.con.geo_tweet_me.stream_tweets.create_index([
             ('geo.coordinates', pymongo.GEO2D), 
             ('created_at', 1),
+            ('geotweetme.searches', 1),
         ])
         models.con.geo_tweet_me.stream_tweets.create_index([
         ('text','text'),
@@ -26,6 +27,7 @@ class TwitterRecorder(StreamListener):
         models.con.geo_tweet_me.stream_tweets.create_index([
             ('geo.coordinates', pymongo.GEO2D), 
             ('created_at', 1),
+            ('geotweetme.searches', 1),
         ])
         models.con.geo_tweet_me.stream_tweets.create_index([
         ('text','text'),

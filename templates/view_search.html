@@ -16,6 +16,8 @@
             $scope.search_id = location.pathname.split("/")[2];
 
             function setSlider(start, end) {
+                console.log(new Date(start));
+                console.log(new Date(end));
                 $("#dateSlider").dateRangeSlider({
                     bounds: {
                         min: new Date(start),
@@ -25,14 +27,21 @@
                         min: new Date(start),
                         max: new Date(end)
                     },
+                    step: {
+                        minutes: 1,
+                    }
                 });
 
-                $("#dateSlider").bind("valuesChanged", function(e, data){
+                $("#dateSlider").on("valuesChanged", function(e, data){
                     start = moment(data.values.min).format('X');
                     end = moment(data.values.max).format('X');
+                    console.log(start);
+                    console.log(end);
                     $http.get('/api/search/' + $scope.search_id + '/date/' + start + '/' + end).success(
                         function(data) {
+                        console.log("loadede");
                         $scope.tweets = data.results;
+                        console.log(data.results);
                     });    
                 });  
             }
@@ -58,12 +67,12 @@
                 markers.clearLayers();
                 if ($scope.tweets.length > 1000) {
                     for (var i = 0; i < $scope.tweets.length; i++) {
-                        cluster.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1], $scope.tweets[i].obj.text));
+                        cluster.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1], $scope.tweets[i].text));
                     }
                 map.addLayer(cluster);
                 } else {
                     for (var i = 0; i < $scope.tweets.length; i++) {
-                        markers.addLayer($scope.createMarkers($scope.tweets[i].obj.geo.coordinates[0], $scope.tweets[i].obj.geo.coordinates[1], $scope.tweets[i].obj.text));
+                        markers.addLayer($scope.createMarkers($scope.tweets[i].geo.coordinates[0], $scope.tweets[i].geo.coordinates[1], $scope.tweets[i].text));
                     }
                 map.addLayer(markers);
                 }
@@ -71,10 +80,11 @@
                     
             $http.get('/api/search/' + $scope.search_id).success(
                 function(data) {
-                    $scope.tweets = data.results[0].tweets;
+                    console.log(data);
+                    $scope.tweets = data.results;
                     $scope.terms = data.terms[0]
 
-                    setSlider($scope.tweets[0].obj.created_at["$date"], $scope.tweets[$scope.tweets.length - 1].obj.created_at["$date"]);
+                    setSlider($scope.tweets[0].created_at["$date"], $scope.tweets[$scope.tweets.length - 1].created_at["$date"]);
 
                     drawMarkers();
                 }).error(
